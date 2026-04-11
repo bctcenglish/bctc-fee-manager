@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="Fee Manager"/>
+<meta name="theme-color" content="#d4af37"/>
+<link rel="manifest" href="manifest.json"/>
+<link rel="apple-touch-icon" href="icon.svg"/>
+<title>BCTC Fee Manager</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --gold:#d4af37;--gold-lt:#f5e27d;--green:#25d366;--red:#ff4d4d;--orange:#ff9800;
+  --bg:#0c0c0c;--card:#141414;--border:#252525;--text:#f0f0f0;--muted:#666;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;overscroll-behavior:none;}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;
+  padding-top:var(--safe-top);padding-bottom:var(--safe-bottom);}
+
+/* HEADER */
+.header{background:rgba(14,14,14,.95);backdrop-filter:blur(16px);
+  border-bottom:1px solid var(--border);padding:14px 16px;
+  display:flex;align-items:center;justify-content:space-between;
+  position:sticky;top:0;z-index:40;}
+.header-left{cursor:pointer;flex:1;}
+.header-title{font-family:'Playfair Display',serif;color:var(--gold);font-size:1.1rem;line-height:1.2;}
+.header-sub{font-size:.65rem;color:var(--muted);margin-top:1px;}
+.btn-add{background:linear-gradient(135deg,var(--gold),var(--gold-lt));color:#1a1200;
+  border:none;border-radius:8px;padding:9px 14px;font-weight:700;font-size:.8rem;
+  cursor:pointer;font-family:'DM Sans',sans-serif;white-space:nowrap;flex-shrink:0;}
+
+/* MAIN */
+.main{max-width:600px;margin:0 auto;padding:14px 12px 80px;}
+
+/* TODAY ALERT */
+.today-alert{background:#1a0f00;border:1px solid var(--orange);border-radius:11px;
+  padding:13px 14px;margin-bottom:14px;}
+.today-alert h3{color:var(--orange);font-size:.84rem;margin-bottom:8px;}
+.today-pill{display:inline-flex;align-items:center;gap:7px;background:#221500;
+  border:1px solid #ff980055;border-radius:8px;padding:7px 10px;margin:3px 3px 0 0;
+  font-size:.78rem;cursor:pointer;active-scale:.97;}
+.today-pill .pname{font-weight:700;}
+.today-pill .pfee{color:var(--gold);}
+
+/* STATS */
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:8px;}
+.stats2{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:14px;}
+.stat-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:11px 7px;text-align:center;}
+.stat-card.money{padding:13px 10px;}
+.stat-icon{font-size:1.1rem;}
+.stat-val{font-size:1.05rem;font-weight:700;margin-top:2px;}
+.stat-val.big{font-size:1.2rem;}
+.stat-label{font-size:.62rem;color:var(--muted);margin-top:2px;}
+
+/* PROGRESS */
+.fee-bar-wrap{background:var(--card);border:1px solid var(--border);border-radius:10px;
+  padding:12px 13px;margin-bottom:14px;}
+.fee-bar-title{font-size:.7rem;color:var(--muted);margin-bottom:7px;letter-spacing:.04em;text-transform:uppercase;}
+.fee-bar-track{height:10px;background:#222;border-radius:99px;overflow:hidden;}
+.fee-bar-fill{height:100%;border-radius:99px;background:linear-gradient(90deg,#25d366,#66bb6a);transition:width .5s ease;}
+.fee-bar-labels{display:flex;justify-content:space-between;margin-top:5px;font-size:.7rem;}
+.fee-bar-paid{color:#66bb6a;font-weight:700;}
+.fee-bar-unpaid{color:var(--red);font-weight:700;}
+
+/* CONTROLS */
+.controls{display:flex;gap:7px;margin-bottom:10px;flex-wrap:wrap;}
+.controls input,.controls select{background:var(--card);border:1px solid var(--border);
+  color:var(--text);padding:9px 11px;border-radius:8px;font-family:'DM Sans',sans-serif;
+  font-size:.8rem;outline:none;flex:1 1 120px;}
+
+/* TABS */
+.tabs{display:flex;margin-bottom:12px;border:1px solid var(--border);border-radius:9px;overflow:hidden;}
+.tab{flex:1;padding:9px;text-align:center;font-size:.78rem;font-weight:700;cursor:pointer;
+  background:var(--card);color:var(--muted);border:none;font-family:'DM Sans',sans-serif;}
+.tab.active{background:#1a1200;color:var(--gold);}
+
+/* STUDENT CARDS */
+.student-list{display:flex;flex-direction:column;gap:8px;}
+.student-card{background:var(--card);border:1px solid var(--border);border-radius:11px;
+  padding:12px 12px 12px 14px;display:flex;gap:9px;align-items:center;
+  transition:transform .1s;}
+.student-card:active{transform:scale(.99);}
+.student-card.paid{opacity:.65;}
+.s-avatar{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;
+  justify-content:center;font-size:.95rem;flex-shrink:0;border:2px solid transparent;}
+.s-info{flex:1;min-width:0;}
+.s-name{font-weight:700;font-size:.88rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.s-meta{font-size:.68rem;color:var(--muted);margin-top:2px;}
+.s-right{text-align:right;flex-shrink:0;}
+.s-fee{font-weight:700;color:var(--gold);font-size:.88rem;}
+.s-badge{display:inline-block;font-size:.65rem;padding:2px 7px;border-radius:20px;margin-top:3px;font-weight:600;}
+.s-actions{display:flex;flex-direction:column;gap:4px;flex-shrink:0;}
+.btn-icon{width:30px;height:30px;border-radius:7px;border:1px solid var(--border);
+  background:#1c1c1c;cursor:pointer;font-size:.8rem;display:flex;align-items:center;justify-content:center;}
+.btn-wa{border-color:#25d36644;background:#0a1a0a;}
+.btn-receipt{border-color:#25d36688;background:#0d220d;}
+.btn-paid{border-color:#d4af3744;background:#1a1200;color:var(--gold);}
+.btn-edit{color:#aaa;}
+.btn-del{border-color:#ff4d4d33;background:#1a0a0a;color:var(--red);}
+
+/* EMPTY */
+.empty{text-align:center;padding:45px 20px;border:1px dashed var(--border);border-radius:14px;color:var(--muted);}
+.empty-icon{font-size:2.3rem;margin-bottom:9px;}
+.empty-title{font-family:'Playfair Display',serif;color:#444;font-size:.95rem;}
+
+/* OVERLAY */
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:100;
+  align-items:flex-end;justify-content:center;padding:0;}
+.overlay.active{display:flex;}
+.modal{background:#131313;border:1px solid var(--border);border-radius:18px 18px 0 0;
+  padding:22px 18px calc(22px + var(--safe-bottom));width:100%;max-width:600px;
+  max-height:92vh;overflow-y:auto;}
+.modal-handle{width:36px;height:4px;background:#333;border-radius:99px;margin:0 auto 16px;}
+.modal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;}
+.modal-title{font-family:'Playfair Display',serif;font-size:1.05rem;}
+.btn-close{background:none;border:none;color:var(--muted);font-size:1.4rem;cursor:pointer;padding:4px;}
+.field{margin-bottom:13px;}
+.field label{display:block;color:var(--muted);font-size:.7rem;letter-spacing:.06em;text-transform:uppercase;margin-bottom:5px;}
+.field input,.field select{width:100%;padding:11px 12px;border-radius:9px;border:1px solid var(--border);
+  background:#1c1c1c;color:var(--text);font-family:'DM Sans',sans-serif;font-size:.88rem;outline:none;
+  -webkit-appearance:none;}
+.btn-save{width:100%;padding:13px;border-radius:11px;border:none;
+  background:linear-gradient(135deg,var(--gold),var(--gold-lt));color:#1a1200;
+  font-weight:700;font-size:.92rem;cursor:pointer;font-family:'DM Sans',sans-serif;margin-top:6px;}
+.wa-msg{background:#1a2a1a;border:1px solid #25d36644;border-radius:10px;
+  padding:13px;font-family:monospace;font-size:.8rem;color:#e0e0e0;
+  white-space:pre-wrap;line-height:1.75;margin-bottom:14px;}
+.wa-label{font-size:.7rem;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em;}
+.btn-row{display:flex;gap:9px;}
+.btn-copy{flex:1;padding:12px;border-radius:10px;border:1px solid var(--border);
+  background:#222;color:#ccc;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:.8rem;}
+.btn-wa-open{flex:1;padding:12px;border-radius:10px;border:none;background:var(--green);
+  color:#fff;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:.8rem;font-weight:700;
+  text-decoration:none;display:block;text-align:center;line-height:1.4;}
+
+/* BANNERS */
+.install-banner,.notif-banner{border-radius:11px;padding:12px 14px;margin-bottom:14px;display:flex;align-items:center;gap:10px;}
+.install-banner{background:#1a1200;border:1px solid var(--gold);}
+.notif-banner{background:#0a1a2a;border:1px solid #4fc3f7;}
+.install-banner-text,.notif-banner-text{flex:1;font-size:.78rem;color:#ccc;line-height:1.4;}
+.install-banner-text strong{color:var(--gold);}
+.notif-banner-text strong{color:#4fc3f7;}
+.btn-install{background:linear-gradient(135deg,var(--gold),var(--gold-lt));color:#1a1200;
+  border:none;border-radius:8px;padding:8px 13px;font-weight:700;font-size:.75rem;
+  cursor:pointer;font-family:'DM Sans',sans-serif;white-space:nowrap;flex-shrink:0;}
+.btn-notif-allow{background:#4fc3f7;color:#001020;border:none;border-radius:8px;
+  padding:8px 13px;font-weight:700;font-size:.75rem;cursor:pointer;
+  font-family:'DM Sans',sans-serif;white-space:nowrap;flex-shrink:0;}
+.btn-dismiss{background:none;border:none;color:var(--muted);font-size:1.2rem;cursor:pointer;flex-shrink:0;padding:2px;}
+
+/* TOAST */
+.toast{position:fixed;bottom:calc(24px + var(--safe-bottom));left:50%;
+  transform:translateX(-50%) translateY(80px);
+  background:#1e1e1e;color:#fff;padding:10px 18px;border-radius:30px;font-size:.8rem;
+  z-index:200;transition:transform .3s;pointer-events:none;white-space:nowrap;
+  border:1px solid #333;box-shadow:0 4px 20px rgba(0,0,0,.5);}
+.toast.show{transform:translateX(-50%) translateY(0);}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-left" onclick="openSettings()">
+    <div class="header-title" id="headerTitle">BCTC Fee Manager</div>
+    <div class="header-sub" id="headerSub">Brajadham Computer Tutorial Centre ✏️</div>
+  </div>
+  <button class="btn-add" onclick="openAdd()">+ Student</button>
+</div>
+
+<div class="main">
+  <!-- NOTIFICATION PERMISSION BANNER -->
+  <div class="notif-banner" id="notifBanner" style="display:none">
+    <div class="notif-banner-text"><strong>🔔 Enable Notifications</strong><br/>Get alerted on each student's fee due date at 9 AM</div>
+    <button class="btn-notif-allow" onclick="requestNotifPermission()">Allow</button>
+    <button class="btn-dismiss" onclick="dismissNotif()">×</button>
+  </div>
+
+  <!-- INSTALL BANNER -->
+  <div class="install-banner" id="installBanner" style="display:none">
+    <div class="install-banner-text"><strong>Install as App</strong><br/>Add to home screen for quick access & offline use</div>
+    <button class="btn-install" id="btnInstall">Install</button>
+    <button class="btn-dismiss" onclick="dismissInstall()">×</button>
+  </div>
+
+  <!-- TODAY ALERT -->
+  <div id="todayAlert" style="display:none" class="today-alert">
+    <h3>🔔 Fee Due Today — tap to send reminder</h3>
+    <div id="todayPills"></div>
+  </div>
+
+  <!-- STATS -->
+  <div class="stats">
+    <div class="stat-card">
+      <div class="stat-icon">👥</div>
+      <div class="stat-val" id="statTotal" style="color:var(--gold)">0</div>
+      <div class="stat-label">Students</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">⏳</div>
+      <div class="stat-val" id="statUnpaid" style="color:var(--red)">0</div>
+      <div class="stat-label">Unpaid</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">✅</div>
+      <div class="stat-val" id="statPaid" style="color:#66bb6a">0</div>
+      <div class="stat-label">Paid</div>
+    </div>
+  </div>
+
+  <div class="stats2">
+    <div class="stat-card money">
+      <div class="stat-icon">💚</div>
+      <div class="stat-val big" id="statPaidAmt" style="color:#66bb6a">₹0</div>
+      <div class="stat-label">Collected</div>
+    </div>
+    <div class="stat-card money">
+      <div class="stat-icon">🔴</div>
+      <div class="stat-val big" id="statUnpaidAmt" style="color:var(--red)">₹0</div>
+      <div class="stat-label">Pending</div>
+    </div>
+  </div>
+
+  <div class="fee-bar-wrap">
+    <div class="fee-bar-title">This Month's Collection</div>
+    <div class="fee-bar-track"><div class="fee-bar-fill" id="feeBarFill" style="width:0%"></div></div>
+    <div class="fee-bar-labels">
+      <span class="fee-bar-paid" id="feeBarPaidLbl">Collected: ₹0</span>
+      <span class="fee-bar-unpaid" id="feeBarUnpaidLbl">Pending: ₹0</span>
+    </div>
+  </div>
+
+  <!-- CONTROLS -->
+  <div class="controls">
+    <input type="text" id="searchBox" placeholder="🔍 Search name / course…" oninput="renderList()"/>
+    <select id="sortBox" onchange="renderList()">
+      <option value="due">Due Day</option>
+      <option value="name">Name A–Z</option>
+      <option value="fee">Fee ↓</option>
+    </select>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" id="tabAll" onclick="setTab('all')">All</button>
+    <button class="tab" id="tabUnpaid" onclick="setTab('unpaid')">Unpaid</button>
+    <button class="tab" id="tabPaid" onclick="setTab('paid')">Paid</button>
+  </div>
+
+  <div class="student-list" id="studentList"></div>
+</div>
+
+<!-- ADD/EDIT MODAL -->
+<div class="overlay" id="addModal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <div class="modal-title" id="modalTitle">➕ Add Student</div>
+      <button class="btn-close" onclick="closeAdd()">×</button>
+    </div>
+    <input type="hidden" id="editId"/>
+    <div class="field"><label>Student Name</label>
+      <input type="text" id="fName" placeholder="e.g. Riya Chatterjee" autocomplete="off"/></div>
+    <div class="field"><label>Phone (with country code)</label>
+      <input type="tel" id="fPhone" placeholder="e.g. 919876543210"/></div>
+    <div class="field"><label>Monthly Fee (₹)</label>
+      <input type="number" id="fFee" placeholder="e.g. 500" inputmode="numeric"/></div>
+    <div class="field"><label>Course / Class</label>
+      <input type="text" id="fCourse" placeholder="e.g. Computer Basics" autocomplete="off"/></div>
+    <div class="field"><label>Fee Due Day (every month)</label>
+      <select id="fDueDay"><option value="">Select day…</option></select></div>
+    <button class="btn-save" id="btnSave" onclick="saveStudent()">Add Student</button>
+  </div>
+</div>
+
+<!-- WHATSAPP MODAL -->
+<div class="overlay" id="waModal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <div class="modal-title" id="waModalTitle">💬 WhatsApp Message</div>
+      <button class="btn-close" onclick="closeWa()">×</button>
+    </div>
+    <div class="wa-label" id="waModalLabel">Fee Reminder</div>
+    <div class="wa-msg" id="waText"></div>
+    <div class="btn-row">
+      <button class="btn-copy" onclick="copyMsg()">📋 Copy</button>
+      <a class="btn-wa-open" id="waLink" target="_blank">📲 Open WhatsApp</a>
+    </div>
+  </div>
+</div>
+
+<!-- SETTINGS MODAL -->
+<div class="overlay" id="settingsModal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <div class="modal-title">⚙️ Institute Settings</div>
+      <button class="btn-close" onclick="closeSettings()">×</button>
+    </div>
+    <div class="field">
+      <label>Institute Full Name</label>
+      <input type="text" id="sFullName" placeholder="e.g. Brajadham Computer Tutorial Centre"/>
+      <div style="font-size:.68rem;color:var(--muted);margin-top:4px;">Used in WhatsApp messages & receipts</div>
+    </div>
+    <div class="field">
+      <label>Short Name / Abbreviation</label>
+      <input type="text" id="sShortName" placeholder="e.g. BCTC"/>
+      <div style="font-size:.68rem;color:var(--muted);margin-top:4px;">Shown in header and messages</div>
+    </div>
+    <button class="btn-save" onclick="saveSettings()">Save Settings</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── STORAGE ──────────────────────────────────────────
+const STORE='bctc_v3', INST_KEY='bctc_institute', RESET_KEY='bctc_last_reset';
+
+function load(){try{return JSON.parse(localStorage.getItem(STORE))||[];}catch(e){return[];}}
+function save(){localStorage.setItem(STORE,JSON.stringify(students));}
+function loadInstitute(){
+  try{return JSON.parse(localStorage.getItem(INST_KEY))||{full:'Brajadham Computer Tutorial Centre',short:'BCTC'};}
+  catch(e){return{full:'Brajadham Computer Tutorial Centre',short:'BCTC'};}
+}
+function saveInstitute(inst){localStorage.setItem(INST_KEY,JSON.stringify(inst));}
+
+let students=load();
+let institute=loadInstitute();
+let activeTab='all';
+let currentWaMsg='';
+
+// ── HELPERS ──────────────────────────────────────────
+function todayObj(){const d=new Date();return{y:d.getFullYear(),m:d.getMonth(),day:d.getDate()};}
+function monthKey(){const t=todayObj();return t.y+'-'+t.m;}
+function isDueToday(s){return Number(s.dueDay)===todayObj().day;}
+function isPaid(s){return s.paidMonth===monthKey();}
+function ordinal(n){n=Number(n);const v=n%100,arr=['th','st','nd','rd'];return n+(arr[(v-20)%10]||arr[v]||arr[0]);}
+function dueDateStr(dueDay){
+  const t=todayObj();
+  let d=new Date(t.y,t.m,Number(dueDay));
+  if(Number(dueDay)<t.day)d=new Date(t.y,t.m+1,Number(dueDay));
+  return d.toLocaleDateString('en-IN',{day:'numeric',month:'long',year:'numeric'});
+}
+function thisMonthStr(){
+  return new Date().toLocaleDateString('en-IN',{month:'long',year:'numeric'});
+}
+function showToast(msg,color){
+  const el=document.getElementById('toast');
+  el.textContent=msg;el.style.background=color||'#25d366';
+  el.classList.add('show');setTimeout(()=>el.classList.remove('show'),2400);
+}
+
+// ── INSTITUTE ────────────────────────────────────────
+function applyInstituteName(){
+  document.getElementById('headerTitle').textContent=institute.short+' Fee Manager';
+  document.getElementById('headerSub').textContent=institute.full+' ✏️';
+}
+function openSettings(){
+  document.getElementById('sFullName').value=institute.full;
+  document.getElementById('sShortName').value=institute.short;
+  document.getElementById('settingsModal').classList.add('active');
+}
+function closeSettings(){document.getElementById('settingsModal').classList.remove('active');}
+function saveSettings(){
+  const full=document.getElementById('sFullName').value.trim();
+  const short=document.getElementById('sShortName').value.trim();
+  if(!full||!short){alert('Please fill both fields.');return;}
+  institute={full,short};saveInstitute(institute);applyInstituteName();
+  closeSettings();showToast('✅ Institute name updated');
+}
+
+// ── TAB ──────────────────────────────────────────────
+function setTab(t){
+  activeTab=t;
+  ['all','unpaid','paid'].forEach(x=>{
+    document.getElementById('tab'+x[0].toUpperCase()+x.slice(1)).classList.toggle('active',x===t);
+  });
+  renderList();
+}
+
+// ── RENDER ───────────────────────────────────────────
+function renderList(){
+  const search=document.getElementById('searchBox').value.toLowerCase();
+  const sortBy=document.getElementById('sortBox').value;
+
+  // today alert
+  const dueToday=students.filter(s=>isDueToday(s)&&!isPaid(s));
+  const alertEl=document.getElementById('todayAlert');
+  if(dueToday.length>0){
+    alertEl.style.display='block';
+    document.getElementById('todayPills').innerHTML=dueToday.map(s=>
+      `<span class="today-pill" onclick="openReminder('${s.id}')">
+        <span class="pname">${s.name}</span>
+        <span class="pfee">₹${Number(s.fee).toLocaleString('en-IN')}</span>
+        <span style="font-size:.75rem">📲</span>
+      </span>`
+    ).join('');
+  } else {alertEl.style.display='none';}
+
+  // stats
+  const paidCount=students.filter(s=>isPaid(s)).length;
+  const paidAmt=students.filter(s=>isPaid(s)).reduce((a,s)=>a+Number(s.fee),0);
+  const unpaidAmt=students.filter(s=>!isPaid(s)).reduce((a,s)=>a+Number(s.fee),0);
+  const totalAmt=paidAmt+unpaidAmt;
+  const pct=totalAmt>0?Math.round(paidAmt/totalAmt*100):0;
+  document.getElementById('statTotal').textContent=students.length;
+  document.getElementById('statPaid').textContent=paidCount;
+  document.getElementById('statUnpaid').textContent=students.length-paidCount;
+  document.getElementById('statPaidAmt').textContent='₹'+paidAmt.toLocaleString('en-IN');
+  document.getElementById('statUnpaidAmt').textContent='₹'+unpaidAmt.toLocaleString('en-IN');
+  document.getElementById('feeBarFill').style.width=pct+'%';
+  document.getElementById('feeBarPaidLbl').textContent='Collected: ₹'+paidAmt.toLocaleString('en-IN')+' ('+pct+'%)';
+  document.getElementById('feeBarUnpaidLbl').textContent='Pending: ₹'+unpaidAmt.toLocaleString('en-IN');
+
+  let list=students.filter(s=>{
+    const ms=(s.name+' '+(s.course||'')).toLowerCase().includes(search);
+    if(!ms)return false;
+    if(activeTab==='paid')return isPaid(s);
+    if(activeTab==='unpaid')return!isPaid(s);
+    return true;
+  });
+
+  if(sortBy==='due')list.sort((a,b)=>Number(a.dueDay)-Number(b.dueDay));
+  else if(sortBy==='name')list.sort((a,b)=>a.name.localeCompare(b.name));
+  else if(sortBy==='fee')list.sort((a,b)=>b.fee-a.fee);
+
+  const el=document.getElementById('studentList');
+  if(list.length===0){
+    el.innerHTML=`<div class="empty">
+      <div class="empty-icon">🎓</div>
+      <div class="empty-title">${students.length===0?'No students yet':'No results'}</div>
+      <div style="font-size:.72rem;margin-top:5px;color:#444">${students.length===0?"Tap '+ Student' to begin":''}</div>
+    </div>`;
+    return;
+  }
+
+  el.innerHTML=list.map(s=>{
+    const paid=isPaid(s);
+    const dueNow=isDueToday(s)&&!paid;
+    const lb=dueNow?'var(--orange)':paid?'#25d366':'#333';
+    const bc=dueNow?'#ff980033':paid?'#25d36622':'var(--border)';
+    const avBg=dueNow?'#2a1800':paid?'#0a1f0a':'#1c1c1c';
+    const icon=dueNow?'🔔':paid?'✅':'👤';
+    const badgeBg=dueNow?'#2a1800':paid?'#0a1f0a':'#1c1c1c';
+    const badgeColor=dueNow?'var(--orange)':paid?'#66bb6a':'var(--muted)';
+    const badgeText=dueNow?'🔔 Due Today':paid?'✅ Paid':'Due '+ordinal(s.dueDay);
+
+    // receipt button only shown for paid students
+    const receiptBtn=paid
+      ?`<button class="btn-icon btn-receipt" onclick="openReceipt('${s.id}')" title="Send Receipt">🧾</button>`
+      :`<button class="btn-icon btn-wa" onclick="openReminder('${s.id}')" title="Send Reminder">📲</button>`;
+
+    return `<div class="student-card${paid?' paid':''}" style="border-left:4px solid ${lb};border-color:${bc};">
+      <div class="s-avatar" style="background:${avBg};border-color:${lb}44;">${icon}</div>
+      <div class="s-info">
+        <div class="s-name">${s.name}</div>
+        <div class="s-meta">${s.course?s.course+' · ':''}Due ${ordinal(s.dueDay)} every month</div>
+      </div>
+      <div class="s-right">
+        <div class="s-fee">₹${Number(s.fee).toLocaleString('en-IN')}</div>
+        <span class="s-badge" style="background:${badgeBg};color:${badgeColor};border:1px solid ${badgeColor}44;">${badgeText}</span>
+      </div>
+      <div class="s-actions">
+        <button class="btn-icon btn-paid" onclick="togglePaid('${s.id}')" title="${paid?'Mark Unpaid':'Mark Paid'}">${paid?'↩️':'💰'}</button>
+        ${receiptBtn}
+        <button class="btn-icon btn-edit" onclick="openEdit('${s.id}')" title="Edit">✏️</button>
+        <button class="btn-icon btn-del" onclick="deleteStudent('${s.id}')" title="Delete">🗑️</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── PAID TOGGLE ──────────────────────────────────────
+function togglePaid(id){
+  const s=students.find(x=>x.id===id);if(!s)return;
+  if(isPaid(s)){
+    delete s.paidMonth;
+    showToast(s.name+' marked unpaid','#ff9800');
+    save();renderList();
+  } else {
+    s.paidMonth=monthKey();
+    save();renderList();
+    showToast('✅ '+s.name+' marked as paid!');
+    // Auto-open WhatsApp receipt after short delay
+    setTimeout(()=>openReceipt(id),600);
+  }
+}
+
+// ── WHATSAPP: REMINDER ───────────────────────────────
+function openReminder(id){
+  const s=students.find(x=>x.id===id);if(!s)return;
+  const dueStr=dueDateStr(s.dueDay);
+  const msg=`নমস্কার ${s.name} 🙏\n\n${institute.short}-তে আপনার মাসিক ফি ₹${s.fee} পেমেন্টের তারিখ ${dueStr}।\n\nসময়মতো পেমেন্ট করবেন।\n\nধন্যবাদ 🙏\n${institute.full}`;
+  openWaModal(s,'💬 Fee Reminder','Fee Reminder for '+s.name,msg);
+}
+
+// ── WHATSAPP: RECEIPT ────────────────────────────────
+function openReceipt(id){
+  const s=students.find(x=>x.id===id);if(!s)return;
+  const month=thisMonthStr();
+  const msg=`নমস্কার ${s.name} 🙏\n\n${institute.short}-এ ${month} মাসের আপনার ফি ₹${s.fee} সফলভাবে গ্রহণ করা হয়েছে। ✅\n\nআপনার পেমেন্টের জন্য আন্তরিক ধন্যবাদ। 🙏\n\n— ${institute.full}`;
+  openWaModal(s,'🧾 Payment Receipt','Payment Receipt — '+month,msg);
+}
+
+function openWaModal(s,title,label,msg){
+  currentWaMsg=msg;
+  document.getElementById('waModalTitle').textContent=title;
+  document.getElementById('waModalLabel').textContent=label;
+  document.getElementById('waText').textContent=msg;
+  document.getElementById('waLink').href='https://wa.me/'+s.phone.replace(/\D/g,'')+'?text='+encodeURIComponent(msg);
+  document.getElementById('waModal').classList.add('active');
+}
+function closeWa(){document.getElementById('waModal').classList.remove('active');}
+function copyMsg(){
+  const btn=document.querySelector('.btn-copy');
+  const done=()=>{btn.textContent='✅ Copied!';setTimeout(()=>btn.textContent='📋 Copy',1800);};
+  if(navigator.clipboard)navigator.clipboard.writeText(currentWaMsg).then(done);
+  else{const ta=document.createElement('textarea');ta.value=currentWaMsg;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);done();}
+}
+
+// ── ADD / EDIT ───────────────────────────────────────
+function populateDays(){
+  const sel=document.getElementById('fDueDay');
+  if(sel.options.length>1)return;
+  for(let i=1;i<=28;i++){const o=document.createElement('option');o.value=i;o.textContent='Every '+ordinal(i)+' of the month';sel.appendChild(o);}
+}
+function openAdd(){
+  populateDays();
+  document.getElementById('editId').value='';
+  ['fName','fPhone','fFee','fCourse'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('fDueDay').value='';
+  document.getElementById('modalTitle').textContent='➕ Add Student';
+  document.getElementById('btnSave').textContent='Add Student';
+  document.getElementById('addModal').classList.add('active');
+}
+function openEdit(id){
+  populateDays();
+  const s=students.find(x=>x.id===id);if(!s)return;
+  document.getElementById('editId').value=id;
+  document.getElementById('fName').value=s.name;
+  document.getElementById('fPhone').value=s.phone;
+  document.getElementById('fFee').value=s.fee;
+  document.getElementById('fCourse').value=s.course||'';
+  document.getElementById('fDueDay').value=s.dueDay;
+  document.getElementById('modalTitle').textContent='✏️ Edit Student';
+  document.getElementById('btnSave').textContent='Save Changes';
+  document.getElementById('addModal').classList.add('active');
+}
+function closeAdd(){document.getElementById('addModal').classList.remove('active');}
+function saveStudent(){
+  const name=document.getElementById('fName').value.trim();
+  const phone=document.getElementById('fPhone').value.trim();
+  const fee=document.getElementById('fFee').value.trim();
+  const course=document.getElementById('fCourse').value.trim();
+  const dueDay=document.getElementById('fDueDay').value;
+  if(!name||!phone||!fee||!dueDay){alert('Please fill Name, Phone, Fee and Due Day.');return;}
+  const id=document.getElementById('editId').value;
+  if(id){const i=students.findIndex(s=>s.id===id);if(i>=0){const old=students[i];students[i]={...old,name,phone,fee:Number(fee),course,dueDay:Number(dueDay)};}}
+  else students.push({id:Date.now().toString(),name,phone,fee:Number(fee),course,dueDay:Number(dueDay)});
+  save();closeAdd();renderList();
+  showToast(id?'✏️ Student updated':'✅ Student added');
+}
+function deleteStudent(id){
+  const s=students.find(x=>x.id===id);
+  if(!s||!confirm('Remove '+s.name+'?'))return;
+  students=students.filter(x=>x.id!==id);save();renderList();
+  showToast('🗑️ '+s.name+' removed','#ff4d4d');
+}
+
+// ── CLOSE OVERLAYS ON OUTSIDE TAP ────────────────────
+['addModal','waModal','settingsModal'].forEach(id=>{
+  document.getElementById(id).addEventListener('click',function(e){if(e.target===this)this.classList.remove('active');});
+});
+
+// ── AUTO-RESET on 1st of every month ─────────────────
+function checkMonthReset(){
+  const t=todayObj();
+  const currentMonthKey=t.y+'-'+t.m;
+  const lastReset=localStorage.getItem(RESET_KEY)||'';
+  if(t.day===1&&lastReset!==currentMonthKey){
+    students.forEach(s=>{delete s.paidMonth;});
+    save();localStorage.setItem(RESET_KEY,currentMonthKey);
+    showToast('🔄 New month — all fees reset to Unpaid');
+  }
+}
+
+// ── PWA: SERVICE WORKER ───────────────────────────────
+if('serviceWorker' in navigator){
+  window.addEventListener('load',()=>{
+    navigator.serviceWorker.register('./sw.js').catch(()=>{});
+  });
+}
+
+// ── PWA: INSTALL PROMPT ───────────────────────────────
+let deferredPrompt=null;
+window.addEventListener('beforeinstallprompt',e=>{
+  e.preventDefault();deferredPrompt=e;
+  if(!localStorage.getItem('install_dismissed'))
+    document.getElementById('installBanner').style.display='flex';
+});
+document.getElementById('btnInstall').addEventListener('click',()=>{
+  if(!deferredPrompt)return;
+  deferredPrompt.prompt();
+  deferredPrompt.userChoice.then(()=>{deferredPrompt=null;document.getElementById('installBanner').style.display='none';});
+});
+function dismissInstall(){
+  document.getElementById('installBanner').style.display='none';
+  localStorage.setItem('install_dismissed','1');
+}
+
+// ── NOTIFICATIONS ─────────────────────────────────────
+function showNotifBanner(){
+  if(!('Notification' in window))return;
+  if(Notification.permission==='granted'){scheduleAllNotifications();return;}
+  if(Notification.permission==='denied')return;
+  if(!localStorage.getItem('notif_dismissed'))
+    document.getElementById('notifBanner').style.display='flex';
+}
+function dismissNotif(){
+  document.getElementById('notifBanner').style.display='none';
+  localStorage.setItem('notif_dismissed','1');
+}
+function requestNotifPermission(){
+  Notification.requestPermission().then(p=>{
+    document.getElementById('notifBanner').style.display='none';
+    if(p==='granted'){
+      scheduleAllNotifications();
+      showToast('🔔 Notifications enabled!');
+    } else {
+      showToast('Notifications blocked','#ff4d4d');
+    }
+  });
+}
+
+// Schedule a notification for each student on their due day at 9 AM
+// We use setTimeout for same-day scheduling (works while app is open)
+// and store upcoming schedule so SW can fire when app is closed
+const notifTimers=[];
+function scheduleAllNotifications(){
+  // Clear existing timers
+  notifTimers.forEach(t=>clearTimeout(t));
+  notifTimers.length=0;
+  if(Notification.permission!=='granted')return;
+
+  const now=new Date();
+  students.forEach(s=>{
+    if(isPaid(s))return; // already paid, skip
+    const t=todayObj();
+    // Build 9 AM target for this student's due day this month
+    let due=new Date(t.y,t.m,Number(s.dueDay),9,0,0,0);
+    // If due day already passed this month, schedule next month
+    if(due<=now) due=new Date(t.y,t.m+1,Number(s.dueDay),9,0,0,0);
+    const ms=due-now;
+    if(ms>0&&ms<7*24*60*60*1000){ // only schedule within 7 days
+      const timer=setTimeout(()=>{
+        if(Notification.permission==='granted'&&!isPaid(s)){
+          const n=new Notification('🔔 Fee Due Today — '+institute.short,{
+            body:s.name+' · ₹'+Number(s.fee).toLocaleString('en-IN')+' due today. Tap to send reminder.',
+            icon:'./icon.svg',
+            tag:'fee-'+s.id,
+            requireInteraction:true
+          });
+          n.onclick=()=>{window.focus();openReminder(s.id);};
+        }
+      },ms);
+      notifTimers.push(timer);
+    }
+  });
+
+  // Also fire immediately if any are due today and unpaid
+  const dueNowUnpaid=students.filter(s=>isDueToday(s)&&!isPaid(s));
+  dueNowUnpaid.forEach(s=>{
+    const lastNotif=localStorage.getItem('notif_sent_'+s.id+'_'+monthKey());
+    if(!lastNotif){
+      setTimeout(()=>{
+        if(Notification.permission==='granted'){
+          const n=new Notification('🔔 Fee Due Today — '+institute.short,{
+            body:s.name+' · ₹'+Number(s.fee).toLocaleString('en-IN')+' due today.',
+            icon:'./icon.svg',
+            tag:'fee-today-'+s.id,
+            requireInteraction:true
+          });
+          n.onclick=()=>{window.focus();openReminder(s.id);};
+          localStorage.setItem('notif_sent_'+s.id+'_'+monthKey(),'1');
+        }
+      },2000);
+    }
+  });
+}
+
+// ── INIT ─────────────────────────────────────────────
+applyInstituteName();
+checkMonthReset();
+renderList();
+showNotifBanner();
+</script>
+</body>
+</html>
