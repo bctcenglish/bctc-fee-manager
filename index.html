@@ -157,11 +157,11 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;
 
 /* SAVE BTN */
 .save-btn-wrap{padding:4px 0 20px;}
-.btn-sheet{width:100%;background:linear-gradient(135deg,#1a472a,#25d366);color:#fff;
-  border:none;border-radius:12px;padding:14px;font-weight:700;font-size:.9rem;
+.btn-sheet{background:linear-gradient(135deg,#1a472a,#25d366);color:#fff;
+  border:none;border-radius:9px;padding:9px 12px;font-weight:700;font-size:.88rem;
   cursor:pointer;font-family:'DM Sans',sans-serif;display:flex;align-items:center;
-  justify-content:center;gap:8px;}
-.btn-sheet span{font-size:1.1rem;}
+  justify-content:center;gap:6px;flex-shrink:0;}
+.btn-sheet span{font-size:1.1rem;line-height:1;}
 
 /* TOAST */
 .toast{position:fixed;bottom:calc(24px + var(--safe-bottom));left:50%;
@@ -179,7 +179,10 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;
     <div class="header-title" id="headerTitle">BCTC Fee Manager</div>
     <div class="header-sub" id="headerSub">Brajadham Computer Tutorial Centre ✏️</div>
   </div>
-  <button class="btn-add" onclick="openAdd()">+ Student</button>
+  <div style="display:flex;gap:7px;flex-shrink:0;">
+    <button class="btn-sheet" onclick="saveWorksheet()" title="Save Worksheet"><span>📊</span></button>
+    <button class="btn-add" onclick="openAdd()">+ Student</button>
+  </div>
 </div>
 
 <div class="main">
@@ -262,9 +265,6 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;
 
   <div class="student-list" id="studentList"></div>
 
-  <div class="save-btn-wrap">
-    <button class="btn-sheet" onclick="saveWorksheet()"><span>📊</span> Save Worksheet</button>
-  </div>
 </div>
 <div class="overlay" id="addModal">
   <div class="modal">
