@@ -639,59 +639,34 @@ function requestNotifPermission(){
   });
 }
 
-// Schedule a notification for each student on their due day at 9 AM
-// We use setTimeout for same-day scheduling (works while app is open)
-// and store upcoming schedule so SW can fire when app is closed
-const notifTimers=[];
+// Fire notifications for all students due TODAY that haven't been notified yet.
+// Runs every time the app is opened — so even if you open at 2 PM you get alerted.
+// Each student is only notified once per due date (stored in localStorage).
 function scheduleAllNotifications(){
-  // Clear existing timers
-  notifTimers.forEach(t=>clearTimeout(t));
-  notifTimers.length=0;
   if(Notification.permission!=='granted')return;
+  const mk=monthKey();
+  const dueToday=students.filter(s=>isDueToday(s)&&!isPaid(s));
 
-  const now=new Date();
-  students.forEach(s=>{
-    if(isPaid(s))return; // already paid, skip
-    const t=todayObj();
-    // Build 9 AM target for this student's due day this month
-    let due=new Date(t.y,t.m,Number(s.dueDay),9,0,0,0);
-    // If due day already passed this month, schedule next month
-    if(due<=now) due=new Date(t.y,t.m+1,Number(s.dueDay),9,0,0,0);
-    const ms=due-now;
-    if(ms>0&&ms<7*24*60*60*1000){ // only schedule within 7 days
-      const timer=setTimeout(()=>{
-        if(Notification.permission==='granted'&&!isPaid(s)){
-          const n=new Notification('🔔 Fee Due Today — '+institute.short,{
-            body:s.name+' · ₹'+Number(s.fee).toLocaleString('en-IN')+' due today. Tap to send reminder.',
-            icon:'./icon.svg',
-            tag:'fee-'+s.id,
-            requireInteraction:true
-          });
-          n.onclick=()=>{window.focus();openReminder(s.id);};
-        }
-      },ms);
-      notifTimers.push(timer);
-    }
-  });
+  if(dueToday.length===0)return;
 
-  // Also fire immediately if any are due today and unpaid
-  const dueNowUnpaid=students.filter(s=>isDueToday(s)&&!isPaid(s));
-  dueNowUnpaid.forEach(s=>{
-    const lastNotif=localStorage.getItem('notif_sent_'+s.id+'_'+monthKey());
-    if(!lastNotif){
-      setTimeout(()=>{
-        if(Notification.permission==='granted'){
-          const n=new Notification('🔔 Fee Due Today — '+institute.short,{
-            body:s.name+' · ₹'+Number(s.fee).toLocaleString('en-IN')+' due today.',
-            icon:'./icon.svg',
-            tag:'fee-today-'+s.id,
-            requireInteraction:true
-          });
-          n.onclick=()=>{window.focus();openReminder(s.id);};
-          localStorage.setItem('notif_sent_'+s.id+'_'+monthKey(),'1');
-        }
-      },2000);
-    }
+  // Group into one summary notification + individual ones
+  dueToday.forEach((s,i)=>{
+    const notifKey='notif_sent_'+s.id+'_'+mk;
+    if(localStorage.getItem(notifKey))return; // already sent today
+    setTimeout(()=>{
+      if(Notification.permission!=='granted')return;
+      try{
+        const n=new Notification('🔔 Fee Due Today — '+institute.short,{
+          body:s.name+' · ₹'+Number(s.fee).toLocaleString('en-IN')+' — tap to send reminder',
+          icon:'./icon.svg',
+          tag:'fee-due-'+s.id+'-'+mk,
+          requireInteraction:true,
+          vibrate:[200,100,200]
+        });
+        n.onclick=()=>{window.focus();closeWa();setTimeout(()=>openReminder(s.id),200);};
+        localStorage.setItem(notifKey,'1');
+      }catch(e){}
+    }, 800 + i*400); // stagger slightly so they stack nicely
   });
 }
 
