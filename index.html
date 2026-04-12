@@ -37,7 +37,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;
   cursor:pointer;font-family:'DM Sans',sans-serif;white-space:nowrap;flex-shrink:0;}
 
 /* MAIN */
-.main{max-width:600px;margin:0 auto;padding:14px 12px 100px;}
+.main{max-width:600px;margin:0 auto;padding:14px 12px 30px;}
 
 /* TODAY ALERT */
 .today-alert{background:#1a0f00;border:1px solid var(--orange);border-radius:11px;
@@ -155,15 +155,12 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;
   font-family:'DM Sans',sans-serif;white-space:nowrap;flex-shrink:0;}
 .btn-dismiss{background:none;border:none;color:var(--muted);font-size:1.2rem;cursor:pointer;flex-shrink:0;padding:2px;}
 
-/* FLOAT BAR */
-.float-bar{position:fixed;bottom:0;left:0;right:0;z-index:50;
-  background:#111;border-top:1px solid var(--border);
-  padding:10px 16px calc(10px + var(--safe-bottom));
-  display:flex;justify-content:center;}
-.btn-sheet{background:linear-gradient(135deg,#1a472a,#25d366);color:#fff;
-  border:none;border-radius:10px;padding:12px 32px;font-weight:700;font-size:.88rem;
+/* SAVE BTN */
+.save-btn-wrap{padding:4px 0 20px;}
+.btn-sheet{width:100%;background:linear-gradient(135deg,#1a472a,#25d366);color:#fff;
+  border:none;border-radius:12px;padding:14px;font-weight:700;font-size:.9rem;
   cursor:pointer;font-family:'DM Sans',sans-serif;display:flex;align-items:center;
-  gap:8px;width:100%;max-width:400px;justify-content:center;}
+  justify-content:center;gap:8px;}
 .btn-sheet span{font-size:1.1rem;}
 
 /* TOAST */
@@ -264,9 +261,11 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;
   </div>
 
   <div class="student-list" id="studentList"></div>
-</div>
 
-<!-- ADD/EDIT MODAL -->
+  <div class="save-btn-wrap">
+    <button class="btn-sheet" onclick="saveWorksheet()"><span>📊</span> Save Worksheet</button>
+  </div>
+</div>
 <div class="overlay" id="addModal">
   <div class="modal">
     <div class="modal-handle"></div>
@@ -326,10 +325,6 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;
     </div>
     <button class="btn-save" onclick="saveSettings()">Save Settings</button>
   </div>
-</div>
-
-<div class="float-bar">
-  <button class="btn-sheet" onclick="saveWorksheet()"><span>📊</span> Save Worksheet</button>
 </div>
 
 <div class="toast" id="toast"></div>
