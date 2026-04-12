@@ -155,6 +155,16 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;
   font-family:'DM Sans',sans-serif;white-space:nowrap;flex-shrink:0;}
 .btn-dismiss{background:none;border:none;color:var(--muted);font-size:1.2rem;cursor:pointer;flex-shrink:0;padding:2px;}
 
+/* FLOAT BAR */
+.float-bar{position:fixed;bottom:calc(16px + var(--safe-bottom));left:50%;
+  transform:translateX(-50%);z-index:50;display:flex;gap:10px;
+  background:#1a1a1a;border:1px solid var(--border);border-radius:14px;
+  padding:10px 14px;box-shadow:0 4px 24px rgba(0,0,0,.7);}
+.btn-sheet{background:linear-gradient(135deg,#1a472a,#25d366);color:#fff;
+  border:none;border-radius:9px;padding:10px 18px;font-weight:700;font-size:.82rem;
+  cursor:pointer;font-family:'DM Sans',sans-serif;display:flex;align-items:center;gap:7px;}
+.btn-sheet span{font-size:1rem;}
+
 /* TOAST */
 .toast{position:fixed;bottom:calc(24px + var(--safe-bottom));left:50%;
   transform:translateX(-50%) translateY(80px);
@@ -177,7 +187,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;
 <div class="main">
   <!-- NOTIFICATION PERMISSION BANNER -->
   <div class="notif-banner" id="notifBanner" style="display:none">
-    <div class="notif-banner-text"><strong>🔔 Enable Notifications</strong><br/>Get alerted on each student's fee due date at 9 AM</div>
+    <div class="notif-banner-text"><strong>🔔 Enable Notifications</strong><br/>Get alerted on each student's fee due date at 12:30 PM</div>
     <button class="btn-notif-allow" onclick="requestNotifPermission()">Allow</button>
     <button class="btn-dismiss" onclick="dismissNotif()">×</button>
   </div>
@@ -317,7 +327,13 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;
   </div>
 </div>
 
+<div class="float-bar">
+  <button class="btn-sheet" onclick="saveWorksheet()"><span>📊</span> Save Worksheet</button>
+</div>
+
 <div class="toast" id="toast"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
 <script>
 // ── STORAGE ──────────────────────────────────────────
@@ -482,10 +498,12 @@ function togglePaid(id){
   const s=students.find(x=>x.id===id);if(!s)return;
   if(isPaid(s)){
     delete s.paidMonth;
+    delete s.paidDate;
     showToast(s.name+' marked unpaid','#ff9800');
     save();renderList();
   } else {
     s.paidMonth=monthKey();
+    s.paidDate=new Date().toLocaleDateString('en-IN',{day:'numeric',month:'long',year:'numeric'});
     save();renderList();
     showToast('✅ '+s.name+' marked as paid!');
     // Auto-open WhatsApp receipt after short delay
@@ -705,6 +723,82 @@ function scheduleAllNotifications(){
       }catch(e){}
     },800+i*400);
   });
+}
+
+// ── SAVE WORKSHEET ────────────────────────────────────
+function saveWorksheet(){
+  if(typeof XLSX==='undefined'){showToast('Loading… try again in a moment','#ff9800');return;}
+
+  const wb=XLSX.utils.book_new();
+  const now=new Date();
+  const monthName=now.toLocaleDateString('en-IN',{month:'long',year:'numeric'});
+  const mk=monthKey();
+
+  // ── Sheet 1: Current Month ───────────────────────────
+  const rows=[
+    [institute.full],
+    ['Monthly Fee Report — '+monthName],
+    [],
+    ['#','Student Name','Course','Monthly Fee (₹)','Due Day','Payment Status','Payment Date','Phone']
+  ];
+
+  let totalFee=0, totalPaid=0, totalUnpaid=0;
+  students.forEach((s,i)=>{
+    const paid=isPaid(s);
+    const payDate=paid&&s.paidDate ? s.paidDate : (paid ? monthName : '—');
+    rows.push([
+      i+1,
+      s.name,
+      s.course||'—',
+      Number(s.fee),
+      ordinal(s.dueDay)+' every month',
+      paid ? 'Paid ✅' : 'Unpaid ❌',
+      payDate,
+      s.phone
+    ]);
+    totalFee+=Number(s.fee);
+    if(paid)totalPaid+=Number(s.fee);
+    else totalUnpaid+=Number(s.fee);
+  });
+
+  rows.push([]);
+  rows.push(['','','Total Students:',students.length]);
+  rows.push(['','','Total Fees (₹):',totalFee]);
+  rows.push(['','','Collected (₹):',totalPaid]);
+  rows.push(['','','Pending (₹):',totalUnpaid]);
+
+  const ws=XLSX.utils.aoa_to_sheet(rows);
+
+  // Column widths
+  ws['!cols']=[{wch:4},{wch:22},{wch:20},{wch:16},{wch:18},{wch:14},{wch:18},{wch:16}];
+
+  // Merge title rows
+  ws['!merges']=[
+    {s:{r:0,c:0},e:{r:0,c:7}},
+    {s:{r:1,c:0},e:{r:1,c:7}}
+  ];
+
+  XLSX.utils.book_append_sheet(wb,ws,monthName.replace(/[\/\\?*\[\]]/g,'').slice(0,31));
+
+  // ── Sheet 2: All-Time Summary (one row per student) ──
+  const sumRows=[
+    [institute.full+' — All Students Summary'],
+    [],
+    ['#','Student Name','Course','Monthly Fee (₹)','Due Day','Phone']
+  ];
+  students.forEach((s,i)=>{
+    sumRows.push([i+1,s.name,s.course||'—',Number(s.fee),ordinal(s.dueDay)+' every month',s.phone]);
+  });
+  const ws2=XLSX.utils.aoa_to_sheet(sumRows);
+  ws2['!cols']=[{wch:4},{wch:22},{wch:20},{wch:16},{wch:22},{wch:16}];
+  ws2['!merges']=[{s:{r:0,c:0},e:{r:0,c:5}}];
+  XLSX.utils.book_append_sheet(wb,ws2,'All Students');
+
+  // Download
+  const fileName=institute.short.replace(/\s+/g,'_')+'_Fee_Report_'+
+    now.getFullYear()+'_'+(now.getMonth()+1).toString().padStart(2,'0')+'.xlsx';
+  XLSX.writeFile(wb,fileName);
+  showToast('📊 Worksheet saved!');
 }
 
 // ── INIT ─────────────────────────────────────────────
