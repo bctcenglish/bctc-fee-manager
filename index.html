@@ -639,20 +639,58 @@ function requestNotifPermission(){
   });
 }
 
-// Fire notifications for all students due TODAY that haven't been notified yet.
-// Runs every time the app is opened — so even if you open at 2 PM you get alerted.
-// Each student is only notified once per due date (stored in localStorage).
+// ── NOTIFICATIONS ─────────────────────────────────────
+function showNotifBanner(){
+  if(!('Notification' in window))return;
+  if(Notification.permission==='granted'){scheduleAllNotifications();return;}
+  if(Notification.permission==='denied')return;
+  if(!localStorage.getItem('notif_dismissed'))
+    document.getElementById('notifBanner').style.display='flex';
+}
+function dismissNotif(){
+  document.getElementById('notifBanner').style.display='none';
+  localStorage.setItem('notif_dismissed','1');
+}
+function requestNotifPermission(){
+  Notification.requestPermission().then(p=>{
+    document.getElementById('notifBanner').style.display='none';
+    if(p==='granted'){
+      scheduleAllNotifications();
+      showToast('🔔 Notifications enabled!');
+    } else {
+      showToast('Notifications blocked','#ff4d4d');
+    }
+  });
+}
+
+// Build schedule data and pass to service worker.
+// SW will fire notifications at 12:30 PM on each student's due date.
+// Also fires immediately if due today and past 12:30 PM and not yet notified.
 function scheduleAllNotifications(){
   if(Notification.permission!=='granted')return;
+
+  // Pass student schedule to service worker
+  if('serviceWorker' in navigator && navigator.serviceWorker.controller){
+    const schedule=students
+      .filter(s=>!isPaid(s))
+      .map(s=>({id:s.id,name:s.name,fee:s.fee,dueDay:Number(s.dueDay),phone:s.phone}));
+    navigator.serviceWorker.controller.postMessage({
+      type:'SCHEDULE_NOTIFICATIONS',
+      schedule,
+      instituteName:institute.short,
+      monthKey:monthKey()
+    });
+  }
+
+  // Also handle case: app opened today after 12:30 PM on due date
   const mk=monthKey();
-  const dueToday=students.filter(s=>isDueToday(s)&&!isPaid(s));
+  const now=new Date();
+  const isPast1230=now.getHours()>12||(now.getHours()===12&&now.getMinutes()>=30);
+  if(!isPast1230)return;
 
-  if(dueToday.length===0)return;
-
-  // Group into one summary notification + individual ones
-  dueToday.forEach((s,i)=>{
+  students.filter(s=>isDueToday(s)&&!isPaid(s)).forEach((s,i)=>{
     const notifKey='notif_sent_'+s.id+'_'+mk;
-    if(localStorage.getItem(notifKey))return; // already sent today
+    if(localStorage.getItem(notifKey))return;
     setTimeout(()=>{
       if(Notification.permission!=='granted')return;
       try{
@@ -660,13 +698,12 @@ function scheduleAllNotifications(){
           body:s.name+' · ₹'+Number(s.fee).toLocaleString('en-IN')+' — tap to send reminder',
           icon:'./icon.svg',
           tag:'fee-due-'+s.id+'-'+mk,
-          requireInteraction:true,
-          vibrate:[200,100,200]
+          requireInteraction:true
         });
         n.onclick=()=>{window.focus();closeWa();setTimeout(()=>openReminder(s.id),200);};
         localStorage.setItem(notifKey,'1');
       }catch(e){}
-    }, 800 + i*400); // stagger slightly so they stack nicely
+    },800+i*400);
   });
 }
 
