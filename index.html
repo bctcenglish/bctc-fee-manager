@@ -500,6 +500,8 @@ function togglePaid(id){
   } else {
     s.paidMonth=monthKey();
     s.paidDate=new Date().toLocaleDateString('en-IN',{day:'numeric',month:'long',year:'numeric'});
+    // Clear notification repeat so it stops firing
+    localStorage.setItem('notif_tapped_'+s.id+'_'+monthKey(),'1');
     save();renderList();
     showToast('✅ '+s.name+' marked as paid!');
     // Auto-open WhatsApp receipt after short delay
@@ -610,7 +612,28 @@ if('serviceWorker' in navigator){
   window.addEventListener('load',()=>{
     navigator.serviceWorker.register('./sw.js').catch(()=>{});
   });
+  // Listen for tap message from SW
+  navigator.serviceWorker.addEventListener('message', e => {
+    if(!e.data)return;
+    if(e.data.type==='NOTIF_TAPPED'){
+      const {studentId, monthKey:mk}=e.data;
+      if(studentId&&mk) localStorage.setItem('notif_tapped_'+studentId+'_'+mk,'1');
+      if(studentId) setTimeout(()=>openReminder(studentId),400);
+    }
+  });
 }
+
+// Handle notification tap when app was closed (opened via URL param)
+(function handleNotifUrl(){
+  const p=new URLSearchParams(location.search);
+  const sid=p.get('notif'), mk=p.get('mk');
+  if(sid&&mk){
+    localStorage.setItem('notif_tapped_'+sid+'_'+mk,'1');
+    setTimeout(()=>openReminder(sid),800);
+    // Clean URL
+    history.replaceState({},'','./index.html');
+  }
+})();
 
 // ── PWA: INSTALL PROMPT ───────────────────────────────
 let deferredPrompt=null;
@@ -657,36 +680,42 @@ function requestNotifPermission(){
 }
 
 // Fire a notification for every student whose fee is due TODAY and not yet paid.
-// Called on every app open. Each student only notified once per month.
+// Called on every app open. Fires every day until user taps the notification.
+// Clears only when user taps notification OR marks student as paid.
 function fireDueTodayNotifications(){
   if(Notification.permission!=='granted')return;
   const mk=monthKey();
+  const todayKey=new Date().toISOString().slice(0,10); // YYYY-MM-DD
   const dueToday=students.filter(s=>isDueToday(s)&&!isPaid(s));
   dueToday.forEach((s,i)=>{
-    const key='notif_fired_'+s.id+'_'+mk;
-    if(localStorage.getItem(key))return; // already notified this month
+    const key='notif_tapped_'+s.id+'_'+mk; // cleared only when tapped or paid
+    if(localStorage.getItem(key))return; // user already tapped it this month
+    const seenKey='notif_shown_'+s.id+'_'+todayKey; // prevent duplicate on same open
+    if(localStorage.getItem(seenKey))return;
     setTimeout(()=>{
       try{
-        // Use service worker showNotification if available (works when app minimised)
         if(navigator.serviceWorker&&navigator.serviceWorker.controller){
           navigator.serviceWorker.controller.postMessage({
             type:'SHOW_NOTIFICATION',
-            title:'🔔 Fee Due Today — '+institute.short,
+            title:'🔔 Fee Due — '+institute.short,
             body:s.name+' · ₹'+Number(s.fee).toLocaleString('en-IN')+' · Tap to send reminder',
             tag:'fee-'+s.id+'-'+mk,
-            studentId:s.id
+            studentId:s.id,
+            monthKey:mk
           });
         } else {
-          // Fallback: direct Notification API
-          const n=new Notification('🔔 Fee Due Today — '+institute.short,{
+          const n=new Notification('🔔 Fee Due — '+institute.short,{
             body:s.name+' · ₹'+Number(s.fee).toLocaleString('en-IN')+' · Tap to send reminder',
             icon:'./icon.svg',
             tag:'fee-'+s.id+'-'+mk,
             requireInteraction:true
           });
-          n.onclick=()=>{window.focus();openReminder(s.id);};
+          n.onclick=()=>{
+            localStorage.setItem(key,'1'); // mark tapped
+            window.focus();openReminder(s.id);
+          };
         }
-        localStorage.setItem(key,'1');
+        localStorage.setItem(seenKey,'1'); // shown today
       }catch(e){console.log('Notif error:',e);}
     },600+i*500);
   });

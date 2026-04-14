@@ -1,4 +1,4 @@
-const CACHE = 'bctc-fee-v6';
+const CACHE = 'bctc-fee-v7';
 const ASSETS = ['./index.html','./manifest.json','./icon.svg'];
 
 self.addEventListener('install', e => {
@@ -19,8 +19,7 @@ self.addEventListener('fetch', e => {
   );
 });
 
-// Receive notification request from app and show it via SW
-// (SW notifications work even when app is in background/minimised)
+// Show notification requested by app
 self.addEventListener('message', e => {
   if (!e.data) return;
   if (e.data.type === 'SHOW_NOTIFICATION') {
@@ -31,19 +30,26 @@ self.addEventListener('message', e => {
         tag: e.data.tag,
         requireInteraction: true,
         vibrate: [200, 100, 200],
-        data: { studentId: e.data.studentId }
+        data: { studentId: e.data.studentId, monthKey: e.data.monthKey }
       })
     );
   }
 });
 
-// Tap notification → open/focus the app
+// Notification tapped → open app and tell it to mark this student as tapped
 self.addEventListener('notificationclick', e => {
   e.notification.close();
+  const { studentId, monthKey } = e.notification.data || {};
   e.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then(list => {
-      if (list.length > 0) return list[0].focus();
-      return clients.openWindow('./index.html');
+      const target = list.length > 0 ? list[0] : null;
+      if (target) {
+        // Tell the open app to mark tapped + open reminder
+        target.postMessage({ type: 'NOTIF_TAPPED', studentId, monthKey });
+        return target.focus();
+      }
+      // App not open — open it with params in URL
+      return clients.openWindow('./index.html?notif=' + studentId + '&mk=' + monthKey);
     })
   );
 });
